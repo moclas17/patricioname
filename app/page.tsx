@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null);
@@ -17,7 +17,7 @@ export default function Page() {
     };
   }, [originalUrl, editedUrl]);
 
-  const handlePick = (picked: File) => {
+  const handlePick = async (picked: File) => {
     // Limpiar URL anterior antes de crear una nueva
     if (originalUrl) URL.revokeObjectURL(originalUrl);
     if (editedUrl) URL.revokeObjectURL(editedUrl);
@@ -26,23 +26,21 @@ export default function Page() {
     setOriginalUrl(URL.createObjectURL(picked));
     setEditedUrl("");
     setError("");
+
+    await processImage(picked);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!file) return;
-
+  const processImage = async (imageFile: File) => {
     setLoading(true);
     setError("");
 
-    // Limpiar URL editada anterior antes de crear una nueva
     if (editedUrl) {
       URL.revokeObjectURL(editedUrl);
       setEditedUrl("");
     }
 
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("image", imageFile);
 
     try {
       const response = await fetch("/api/edit", { method: "POST", body: formData });
@@ -60,15 +58,43 @@ export default function Page() {
   };
 
   return (
-    <main style={{ maxWidth: 960, margin: "32px auto", padding: 16 }}>
-      <h1>Agregar saco naranja + camisa blanca + corbata negra</h1>
-      <p>Solo se modifica la vestimenta. El resto queda intacto.</p>
+    <main
+      style={{
+        maxWidth: 960,
+        margin: "32px auto",
+        padding: 16,
+        display: "grid",
+        gap: 24
+      }}
+    >
+      <header
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          textAlign: "center"
+        }}
+      >
+        <h1 style={{ fontSize: "2.5rem", lineHeight: 1.1 }}>POAPtricioname</h1>
+        <p
+          style={{
+            fontSize: "1.1rem",
+            color: "var(--foreground)",
+            opacity: 0.8,
+            maxWidth: 640,
+            margin: "0 auto"
+          }}
+        >
+          Miniapp para llevar el estilo de Patrcio de POAP a tus fotos
+        </p>
+      </header>
 
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+      <form style={{ display: "grid", gap: 12, marginBottom: 16 }}>
         <input
           type="file"
           accept="image/*"
           required
+          disabled={loading}
           onChange={(event) => {
             const selected = event.target.files?.[0];
             if (selected) {
@@ -76,20 +102,6 @@ export default function Page() {
             }
           }}
         />
-        <button
-          type="submit"
-          disabled={!file || loading}
-          style={{
-            background: "#f46b08",
-            color: "#fff",
-            padding: "12px 16px",
-            border: 0,
-            borderRadius: 10,
-            cursor: !file || loading ? "not-allowed" : "pointer"
-          }}
-        >
-          {loading ? "Generando..." : "Generar imagen editada"}
-        </button>
       </form>
 
       {error && <p style={{ color: "crimson" }}>{error}</p>}
@@ -101,9 +113,39 @@ export default function Page() {
             <img src={originalUrl} alt="original" style={{ width: "100%", borderRadius: 8 }} />
           )}
         </div>
-        <div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8
+          }}
+        >
           <h3>Editada</h3>
-          {editedUrl && (
+          {loading && (
+            <div
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: "100%",
+                aspectRatio: "1",
+                borderRadius: 8,
+                border: "2px dashed rgba(244, 107, 8, 0.4)",
+                background: "rgba(244, 107, 8, 0.05)"
+              }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  border: "6px solid rgba(244, 107, 8, 0.2)",
+                  borderTopColor: "#f46b08",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite"
+                }}
+              />
+            </div>
+          )}
+          {!loading && editedUrl && (
             <img src={editedUrl} alt="editada" style={{ width: "100%", borderRadius: 8 }} />
           )}
         </div>
